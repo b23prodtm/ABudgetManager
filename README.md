@@ -28,7 +28,7 @@ UI in French, code and docs in English, amounts in EUR (stored as integer cents)
 
 ## Deployment (Balena Cloud)
 
-Click the **balena deploy** button above, pick a fleet (e.g. `raspberrypi3`), then set `APP_FULL_BASE_URL` and `API_TOKEN` as fleet variables. `docker-compose.yml` uses Compose `version: '2.1'` with balena-supported options only (no `container_name`, no `depends_on` conditions).
+Click the **balena deploy** button above, pick a fleet (e.g. `raspberry-pi2`), then set `APP_FULL_BASE_URL` and `API_TOKEN` as fleet variables. `docker-compose.yml` uses Compose `version: '2.1'` with balena-supported options only (no `container_name`, no `depends_on` conditions).
 
 ## Run
 

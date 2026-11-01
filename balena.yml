@@ -9,8 +9,9 @@ assets:
     data:
       url: 'https://github.com/b23prodtm/ABudgetManager'
 data:
-  defaultDeviceType: raspberrypi3
+  defaultDeviceType: raspberry-pi2
   supportedDeviceTypes:
+    - raspberry-pi2
     - raspberrypi3
     - raspberrypi4-64
     - raspberrypi5
