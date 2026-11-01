@@ -55,7 +55,16 @@ return function (RouteBuilder $routes): void {
          * its action called 'display', and we pass a param to select the view file
          * to use (in this case, templates/Pages/home.php)...
          */
-        $builder->connect('/', ['controller' => 'Pages', 'action' => 'display', 'home']);
+        $builder->connect('/', ['controller' => 'Home', 'action' => 'index']);
+        $builder->connect('/health', ['controller' => 'Home', 'action' => 'health']);
+        $builder->connect('/login', ['controller' => 'Users', 'action' => 'login']);
+        $builder->connect('/signup', ['controller' => 'Users', 'action' => 'signup']);
+        $builder->connect('/logout', ['controller' => 'Users', 'action' => 'logout']);
+        $builder->connect('/dashboard', ['controller' => 'Dashboard', 'action' => 'index']);
+        $builder->connect('/uploads/new', ['controller' => 'Imports', 'action' => 'add']);
+        $builder->connect('/uploads/{id}/review', ['controller' => 'Imports', 'action' => 'review'])
+            ->setPass(['id'])->setPatterns(['id' => '\d+']);
+        $builder->connect('/salary/export', ['controller' => 'Salary', 'action' => 'export']);
 
         /*
          * ...and connect the rest of 'Pages' controller's URLs.

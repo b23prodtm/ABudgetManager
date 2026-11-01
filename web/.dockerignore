@@ -1,0 +1,7 @@
+vendor
+tmp/*
+logs/*
+data/*
+config/app_local.php
+config/.env
+tests.sqlite

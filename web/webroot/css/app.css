@@ -1,0 +1,26 @@
+body { background: #f6f7f9; color: #222; }
+.topbar { display: flex; gap: 1.2rem; align-items: center; padding: .8rem 1.5rem; background: #fff; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
+.topbar a { text-decoration: none; }
+.topbar .brand { font-weight: 700; font-size: 1.8rem; }
+.topbar .spacer { flex: 1; }
+.topbar .who { color: #666; }
+.topbar form { margin: 0; }
+.container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem 1.2rem; }
+.card .label { color: #666; font-size: 1.3rem; }
+.card .value { font-size: 2.4rem; font-weight: 700; }
+.pos { color: #1b8a3a; } .neg { color: #c62828; } .warn { color: #e07b00; }
+.alert { padding: .8rem 1.2rem; border-radius: 4px; margin-bottom: .8rem; border-left: 5px solid; background: #fff; }
+.alert.info { border-color: #1b8a3a; } .alert.warning { border-color: #e07b00; } .alert.danger { border-color: #c62828; background: #fdecea; }
+.message { padding: .8rem 1.2rem; border-radius: 4px; margin-bottom: 1rem; background: #fff; border-left: 5px solid #1b8a3a; cursor: pointer; }
+.message.error { border-color: #c62828; background: #fdecea; }
+.scroll { overflow-x: auto; }
+.num { text-align: right; white-space: nowrap; }
+input.num { text-align: right; }
+.hero { text-align: center; padding: 4rem 1rem; }
+.hero .button { margin: 0 .5rem; }
+.narrow { max-width: 420px; margin: 0 auto; }
+table input, table select { margin: 0; height: 3.2rem; padding: .2rem .6rem; }
+.error-message { color: #c62828; margin-bottom: 1rem; }
+.bar { background: #3b6fd8; height: 10px; border-radius: 3px; }

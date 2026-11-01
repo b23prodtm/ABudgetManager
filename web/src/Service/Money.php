@@ -49,4 +49,16 @@ final class Money
 
         return $sign . number_format(intdiv($abs, 100), 0, '', "\u{202F}") . ',' . sprintf('%02d', $abs % 100) . "\u{00A0}€";
     }
+
+    /**
+     * Value for an <input>: 305742 => "3057,42"; null => "".
+     */
+    public static function toInput(?int $cents): string
+    {
+        if ($cents === null) {
+            return '';
+        }
+
+        return ($cents < 0 ? '-' : '') . intdiv(abs($cents), 100) . ',' . sprintf('%02d', abs($cents) % 100);
+    }
 }

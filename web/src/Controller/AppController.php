@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Controller;
 
+use Cake\Event\EventInterface;
 use Cake\Controller\Controller;
 
 /**
@@ -42,11 +43,35 @@ class AppController extends Controller
         parent::initialize();
 
         $this->loadComponent('Flash');
+    }
 
-        /*
-         * Enable the following component for recommended CakePHP form protection settings.
-         * see https://book.cakephp.org/5/en/controllers/components/form-protection.html
-         */
-        //$this->loadComponent('FormProtection');
+    /**
+     * Every route requires a logged-in user except those listed here.
+     *
+     * @return array<int, string>
+     */
+    protected function publicActions(): array
+    {
+        return [];
+    }
+
+    public function beforeFilter(EventInterface $event): void
+    {
+        $userId = $this->userId();
+        $this->set('currentUserId', $userId);
+        $this->set('currentUserEmail', $this->request->getSession()->read('Auth.email'));
+        if ($userId === null && !in_array($this->request->getParam('action'), $this->publicActions(), true)) {
+            $this->Flash->error('Veuillez vous connecter.');
+
+            $event->setResult($this->redirect(['controller' => 'Users', 'action' => 'login']));
+            $event->stopPropagation();
+        }
+    }
+
+    protected function userId(): ?int
+    {
+        $id = $this->request->getSession()->read('Auth.id');
+
+        return $id === null ? null : (int)$id;
     }
 }

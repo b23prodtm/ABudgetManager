@@ -1,0 +1,53 @@
+# Compatible with balenaCloud multi-container deployments.
+version: '2.1'
+
+volumes:
+  data:
+
+services:
+  # One-shot: generates the security salt, applies database migrations
+  init-web:
+    build: ./web
+    command: ["init"]
+    restart: "no"
+    environment:
+      DB_PATH: /data/budget.sqlite
+    volumes:
+      - data:/data
+
+  # SQLite data owner: nightly backups in /data/backups (14 kept)
+  db:
+    build: ./db
+    restart: unless-stopped
+    depends_on:
+      - init-web
+    environment:
+      DB_PATH: /data/budget.sqlite
+    volumes:
+      - data:/data
+
+  # CakePHP 5 front end (login, upload, review, dashboard)
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - init-web
+      - api
+    ports:
+      - "80:80"
+    environment:
+      DEBUG: "false"
+      APP_DEFAULT_TIMEZONE: Europe/Paris
+      APP_FULL_BASE_URL: ${APP_FULL_BASE_URL:-http://localhost}
+      DB_PATH: /data/budget.sqlite
+      API_URL: http://api:5000
+      API_TOKEN: ${API_TOKEN:-}
+    volumes:
+      - data:/data
+
+  # Python extraction API (PDF -> JSON)
+  api:
+    build: ./api
+    restart: unless-stopped
+    environment:
+      API_TOKEN: ${API_TOKEN:-}
