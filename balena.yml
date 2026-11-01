@@ -1,0 +1,24 @@
+name: Mon Budget
+description: >-
+  Personal budget manager and salary-trend tracker (CakePHP 5 + Python extraction API) for Raspberry Pi.
+version: 1.0.0
+type: sw.application
+assets:
+  repository:
+    type: blob.asset
+    data:
+      url: 'https://github.com/b23prodtm/ABudgetManager'
+data:
+  defaultDeviceType: raspberrypi3
+  supportedDeviceTypes:
+    - raspberrypi3
+    - raspberrypi4-64
+    - raspberrypi5
+    - generic-amd64
+    - generic-aarch64
+  applicationEnvironmentVariables:
+    - APP_FULL_BASE_URL: 'http://localhost'
+    - API_TOKEN: 'set-in-balena-cloud'
+post-provisioning: >-
+  Set APP_FULL_BASE_URL and API_TOKEN as fleet variables, then deploy.
+  The web UI is served on port 80 of the device.

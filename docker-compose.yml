@@ -1,9 +1,6 @@
 # Compatible with balenaCloud multi-container deployments.
 version: '2.1'
 
-volumes:
-  data:
-
 services:
   # One-shot: generates the security salt, applies database migrations
   init-web:
@@ -51,3 +48,6 @@ services:
     restart: unless-stopped
     environment:
       API_TOKEN: ${API_TOKEN:-}
+
+volumes:
+  data:
