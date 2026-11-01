@@ -19,8 +19,8 @@ WORKDIR /var/www/html
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
 RUN composer dump-autoload --optimize --no-dev --no-scripts \
-    && mkdir -p tmp/cache/models tmp/cache/persistent tmp/cache/views tmp/sessions tmp/tests logs /data \
-    && chown -R www-data:www-data tmp logs /data
+    && mkdir -p tmp/cache/models tmp/cache/persistent tmp/cache/views tmp/sessions tmp/tests logs config/Migrations /data \
+    && chown -R www-data:www-data tmp logs config/Migrations /data
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENV DB_PATH=/data/budget.sqlite
