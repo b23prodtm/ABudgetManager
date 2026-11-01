@@ -15,11 +15,11 @@ data:
     - raspberrypi3
     - raspberrypi4-64
     - raspberrypi5
-    - generic-amd64
+    - genericx86-64-ext
     - generic-aarch64
   applicationEnvironmentVariables:
     - APP_FULL_BASE_URL: 'http://localhost'
     - API_TOKEN: 'set-in-balena-cloud'
-post-provisioning: >-
-  Set APP_FULL_BASE_URL and API_TOKEN as fleet variables, then deploy.
-  The web UI is served on port 80 of the device.
+  post-provisioning: >-
+    Set APP_FULL_BASE_URL and API_TOKEN as fleet variables, then deploy.
+    The web UI is served on port 80 of the device.
