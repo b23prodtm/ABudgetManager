@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring, pdo_sqlite
+          tools: composer:v2
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/phpunit
+
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: api/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+
+  compose:
+    name: Compose build and smoke test
+    needs: [web, api]
+    runs-on: ubuntu-latest
+    env:
+      API_TOKEN: ci-token
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and build all services
+        run: |
+          docker compose config -q
+          docker compose build
+      - name: Start the stack
+        run: docker compose up -d
+      - name: Wait for init-web to finish migrating
+        run: |
+          for i in $(seq 1 60); do
+            state=$(docker compose ps -a --format '{{.State}} {{.ExitCode}}' init-web)
+            case "$state" in
+              "exited 0") exit 0 ;;
+              exited*) docker compose logs init-web; exit 1 ;;
+            esac
+            sleep 2
+          done
+          docker compose logs init-web; exit 1
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost/health && break
+            sleep 2
+          done
+          curl -fsS http://localhost/health | grep -q '"ok"'
+          curl -fsS http://localhost/login | grep -q 'Connexion'
+          curl -fsS http://localhost/signup | grep -q 'password_confirm'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/dashboard)" = 302
+          docker compose exec -T api python -c "import urllib.request as u; assert b'ok' in u.urlopen('http://localhost:5000/health').read()"
+          docker compose exec -T db ls /data/budget.sqlite
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
