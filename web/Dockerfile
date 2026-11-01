@@ -6,8 +6,9 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-in
 
 FROM php:8.3-apache
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libicu-dev \
-    && docker-php-ext-install intl \
+    && apt-get install -y --no-install-recommends libicu-dev libonig-dev \
+    && docker-php-ext-install intl mbstring \
+    && printf 'max_input_vars=10000\npost_max_size=24M\nupload_max_filesize=10M\n' > /usr/local/etc/php/conf.d/uploads.ini \
     && a2enmod rewrite \
     && sed -ri 's!/var/www/html!/var/www/html/webroot!g' /etc/apache2/sites-available/*.conf \
     && printf '<Directory /var/www/html/webroot>\n    AllowOverride All\n</Directory>\n' > /etc/apache2/conf-available/cake.conf \

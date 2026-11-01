@@ -37,6 +37,7 @@ PAYSLIP = [
     [(40, "Net social"), (300, "1 600,00")],
     [(40, "Net imposable"), (300, "1 650,00")],
     [(40, "Net paye avant impot"), (300, "1 580,50")],
+    [(40, "Net a payer"), (300, "1 380,50")],
 ]
 
 
@@ -70,11 +71,18 @@ def test_payslip_text():
     assert res["fields"]["gross"] == 205000
     assert res["warnings"] == []
     assert extract.parse_payslip_text("rien")["warnings"]
+    res = extract.parse_payslip_text("Net payé avant impôt 1 580,50\nNet à payer 1 380,50")
+    assert res["fields"]["net_paid"] == 138050
+    res = extract.parse_payslip_text("Net payé en euros avant impôt 1 580,50\nNet à payer 1 380,50")
+    assert res["fields"]["net_paid"] == 138050
+    res = extract.parse_payslip_text("Net payé avant impôt 1 580,50")
+    assert "net_paid" not in res["fields"]
+    assert res["warnings"]
 
 
 def test_payslip_pdf():
     res = extract.extract_payslip(make_pdf(PAYSLIP))
-    assert res["fields"]["net_paid"] == 158050
+    assert res["fields"]["net_paid"] == 138050
     assert res["fields"]["net_taxable"] == 165000
     assert res["month"] == "2026-06-01"
 

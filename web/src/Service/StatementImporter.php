@@ -44,28 +44,37 @@ class StatementImporter
         $transactions = $this->fetchTable('Transactions');
 
         return $statements->getConnection()->transactional(function () use ($userId, $header, $lines, $statements, $transactions) {
-            $known = $transactions->find()
-                ->select(['dedupe_key'])
+            $knownRows = $transactions->find()
+                ->select(['dedupe_key', 'statement_id'])
                 ->where(['user_id' => $userId, 'dedupe_key IN' => array_column($lines, 'dedupe_key') ?: ['']])
                 ->all()
-                ->extract('dedupe_key')
                 ->toList();
-            $statement = $statements->saveOrFail($statements->newEntity($header + ['user_id' => $userId]));
-            $inserted = 0;
+            $known = array_fill_keys(array_map(fn($tx) => $tx->dedupe_key, $knownRows), true);
+            $allKnown = $lines !== [];
             foreach ($lines as $line) {
-                if (in_array($line['dedupe_key'], $known, true)) {
-                    continue;
+                if (!isset($known[$line['dedupe_key']])) {
+                    $allKnown = false;
+                    break;
                 }
+            }
+            if ($allKnown) {
+                $statement = $statements->find()
+                    ->where(['id' => $knownRows[0]->statement_id, 'user_id' => $userId])->firstOrFail();
+
+                return ['statement' => $statement, 'inserted' => 0, 'skipped' => count($lines)];
+            }
+
+            $statement = $statements->saveOrFail($statements->newEntity($header + ['user_id' => $userId]));
+            foreach ($lines as $line) {
                 $transactions->saveOrFail($transactions->newEntity([
                     'user_id' => $userId,
                     'statement_id' => $statement->id,
                 ] + array_intersect_key($line, array_flip([
                     'booked_on', 'label', 'debit_cents', 'credit_cents', 'category_id', 'rule_id', 'category_locked', 'dedupe_key', 'line_no',
                 ]))));
-                $inserted++;
             }
 
-            return ['statement' => $statement, 'inserted' => $inserted, 'skipped' => count($lines) - $inserted];
+            return ['statement' => $statement, 'inserted' => count($lines), 'skipped' => 0];
         });
     }
 

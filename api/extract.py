@@ -109,7 +109,7 @@ def extract_statement(data: bytes) -> Dict:
 
 
 PAYSLIP_PATTERNS = [
-    ("net_paid", r"net\s+pay[ée]\s+(?:en\s+euros\s+)?(?:avant\s+imp[ôo]t\s+)?"),
+    ("net_paid", r"net\s+pay[ée]\s+(?!(?:en\s+euros\s+)?avant\s+imp[ôo]t\s+)(?:en\s+euros\s+)?"),
     ("net_paid", r"net\s+[àa]\s+payer\s+"),
     ("net_taxable", r"net\s+imposable\s+"),
     ("net_social", r"net\s+social\s+"),

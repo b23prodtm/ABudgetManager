@@ -50,6 +50,10 @@ class StatementServicesTest extends TestCase
         $r = $p->parse("2026-05-02\tCARTE LIDL\t-45,10\n2026-05-04\tREMB\t10,00");
         $this->assertSame(4510, $r['lines'][0]['debit_cents']);
         $this->assertSame(1000, $r['lines'][1]['credit_cents']);
+
+        $r = $p->parse("02/05/2026;SHOP;abc;\n");
+        $this->assertSame([], $r['lines']);
+        $this->assertSame(['Ligne 1 ignorée : montant illisible'], $r['errors']);
     }
 
     public function testTotalsAndControls(): void

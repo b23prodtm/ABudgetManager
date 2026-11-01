@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Controller;
 
+use DateTimeImmutable;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\IntegrationTestTrait;
 use Cake\TestSuite\TestCase;
@@ -27,6 +28,21 @@ class BudgetFlowTest extends TestCase
         $this->post('/signup', ['email' => $email, 'password' => 'secret-pass-1', 'password_confirm' => 'secret-pass-1']);
         $user = $this->fetchTable('Users')->find()->where(['email' => $email])->firstOrFail();
         $this->session(['Auth' => ['id' => $user->id, 'email' => $email]]);
+    }
+
+    /**
+     * @return array<int, array<string, string|int>>
+     */
+    private function initialReviewLines(): array
+    {
+        $categoryIds = array_flip($this->fetchTable('Categories')->find('list')->toArray());
+
+        return [
+            ['booked_on' => '02/05/2026', 'label' => 'CARTE LIDL GRENOBLE', 'debit' => '45,10', 'credit' => '', 'category_id' => $categoryIds['Courses']],
+            ['booked_on' => '03/05/2026', 'label' => 'VIR SEPA RECU REGIE D EAU', 'debit' => '', 'credit' => '12,00', 'category_id' => $categoryIds['Logement & énergie']],
+            ['booked_on' => '04/05/2026', 'label' => 'MYSTERY SHOP', 'debit' => '20,00', 'credit' => '', 'category_id' => ''],
+            ['booked_on' => '05/05/2026', 'label' => 'VIR SEPA RECU ACME SA', 'debit' => '', 'credit' => '1 500,00', 'category_id' => $categoryIds['Salaire']],
+        ];
     }
 
     public function testGuestsAreRedirectedToLogin(): void
@@ -67,11 +83,14 @@ class BudgetFlowTest extends TestCase
         $this->get('/uploads/' . $import->id . '/review');
         $this->assertResponseOk();
         $this->assertResponseContains('CARTE LIDL GRENOBLE');
+        $this->assertResponseContains('aria-label="Ligne 1 — Date"');
+        $this->assertResponseContains('aria-label="Ligne 1 — Retirer"');
         $this->assertResponseContains('1 à classer');
         $this->assertResponseContains('Total des débits');
 
         $this->post('/uploads/' . $import->id . '/review', [
             'validate' => '1',
+            'lines' => $this->initialReviewLines(),
             'salary' => ['net_paid' => '1 500,00', 'net_social' => '1 500,00', 'income_tax_withheld' => '', 'panier' => ''],
         ]);
         $this->assertRedirectContains('/dashboard');
@@ -94,8 +113,52 @@ class BudgetFlowTest extends TestCase
         // overlapping re-import skips known lines
         $this->post('/uploads/new', ['month' => '2026-05', 'statement_text' => $csv]);
         $second = $this->fetchTable('Imports')->find()->where(['status' => 'draft'])->firstOrFail();
-        $this->post('/uploads/' . $second->id . '/review', ['validate' => '1']);
+        $this->post('/uploads/' . $second->id . '/review', ['validate' => '1', 'lines' => $this->initialReviewLines()]);
         $this->assertCount(4, $this->fetchTable('Transactions')->find()->all());
+        $this->assertCount(1, $this->fetchTable('Statements')->find()->all());
+
+        $categoryIds = array_flip($this->fetchTable('Categories')->find('list')->toArray());
+        $this->post('/uploads/new', [
+            'month' => '2026-05',
+            'statement_text' => "02/05/2026;CARTE LIDL GRENOBLE;45,10;\n06/05/2026;CARTE LIDL NOUVELLE;10,00;\n",
+        ]);
+        $partial = $this->fetchTable('Imports')->find()->where(['status' => 'draft'])->orderBy(['id' => 'DESC'])->firstOrFail();
+        $this->post('/uploads/' . $partial->id . '/review', [
+            'validate' => '1',
+            'lines' => [
+                ['booked_on' => '02/05/2026', 'label' => 'CARTE LIDL GRENOBLE', 'debit' => '45,10', 'credit' => '', 'category_id' => $categoryIds['Courses']],
+                ['booked_on' => '06/05/2026', 'label' => 'CARTE LIDL NOUVELLE', 'debit' => '10,00', 'credit' => '', 'category_id' => $categoryIds['Courses']],
+            ],
+        ]);
+        $this->assertCount(6, $this->fetchTable('Transactions')->find()->all());
+        $this->assertCount(2, $this->fetchTable('Statements')->find()->all());
+        $partialStatement = $this->fetchTable('Statements')->find()->orderBy(['id' => 'DESC'])->firstOrFail();
+        $this->assertCount(2, $this->fetchTable('Transactions')->find()->where(['statement_id' => $partialStatement->id])->all());
+        $userId = (int)$this->fetchTable('Users')->find()->select(['id'])->firstOrFail()->id;
+        $summary = (new \App\Service\DashboardBuilder())->build($userId, $partialStatement);
+        $this->assertSame(5510, $summary['totals']['debits']);
+    }
+
+    public function testIncompleteReviewSubmissionKeepsDraftLines(): void
+    {
+        $this->signup();
+        $csv = "02/05/2026;SHOP ONE;10,00;\n03/05/2026;SHOP TWO;20,00;\n";
+        $this->post('/uploads/new', ['month' => '2026-05', 'statement_text' => $csv]);
+        $import = $this->fetchTable('Imports')->find()->firstOrFail();
+        $original = $import->payload;
+
+        $this->post('/uploads/' . $import->id . '/review', [
+            'validate' => '1',
+            'lines' => [
+                ['booked_on' => '02/05/2026', 'label' => 'SHOP ONE', 'debit' => '10,00', 'credit' => '', 'category_id' => ''],
+            ],
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('Le formulaire est incomplet');
+        $import = $this->fetchTable('Imports')->get($import->id);
+        $this->assertSame('draft', $import->status);
+        $this->assertSame($original, $import->payload);
     }
 
     public function testDataIsScopedPerUser(): void
@@ -121,5 +184,24 @@ class BudgetFlowTest extends TestCase
         $this->assertResponseContains('Tendance peu fiable');
         $this->get('/salary/export');
         $this->assertResponseOk();
+    }
+
+    public function testTwelveMonthSalaryRangeUsesCalendarCutoff(): void
+    {
+        $this->signup();
+        $entries = $this->fetchTable('SalaryEntries');
+        $userId = (int)$this->fetchTable('Users')->find()->select(['id'])->firstOrFail()->id;
+        $currentMonth = new DateTimeImmutable('first day of this month');
+        for ($offset = 24; $offset >= 13; $offset--) {
+            $month = $currentMonth->modify("-$offset months")->format('Y-m-01');
+            $entries->saveOrFail($entries->newEntity(['user_id' => $userId, 'month' => $month, 'net_paid' => 100000]));
+        }
+        $recent = $currentMonth->modify('-11 months')->format('Y-m-01');
+        $entries->saveOrFail($entries->newEntity(['user_id' => $userId, 'month' => $recent, 'net_paid' => 120000]));
+
+        $this->get('/salary?range=12');
+        $this->assertResponseOk();
+        $this->assertResponseContains((new DateTimeImmutable($recent))->format('m/Y'));
+        $this->assertResponseNotContains($currentMonth->modify('-24 months')->format('m/Y'));
     }
 }

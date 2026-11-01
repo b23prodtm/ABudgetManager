@@ -38,6 +38,10 @@ class StatementParser
             if ($count >= 4) {
                 $debit = Money::parse($cells[2]);
                 $credit = Money::parse($cells[3]);
+                if ((trim($cells[2]) !== '' && $debit === null) || (trim($cells[3]) !== '' && $credit === null)) {
+                    $errors[] = sprintf('Ligne %d ignorée : montant illisible', $n + 1);
+                    continue;
+                }
                 $debit = $debit === null ? 0 : abs($debit);
                 $credit = $credit === null ? 0 : abs($credit);
             } elseif ($count === 3 && ($amount = Money::parse($cells[2])) !== null) {

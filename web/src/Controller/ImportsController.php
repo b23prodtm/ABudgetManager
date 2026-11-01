@@ -29,6 +29,7 @@ class ImportsController extends AppController
     public const SALARY_DECIMALS = ['overtime25_hours', 'hours_worked'];
 
     private const MAX_BYTES = 10 * 1024 * 1024;
+    private const MAX_REVIEW_LINES = 1500;
 
     /**
      * Month homepage: pick the month, upload the two files.
@@ -82,15 +83,19 @@ class ImportsController extends AppController
 
                 return $this->redirect(['action' => 'add']);
             }
-            $payload = $this->applyEdits($payload, $data, $categories->extract('id')->toList());
-            $import->payload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-            $this->fetchTable('Imports')->saveOrFail($import);
-            if (isset($data['validate']) && $payload['salary']['net_paid'] === null && $payload['salary_present']) {
-                $this->Flash->error('Le net payé est obligatoire pour enregistrer le bulletin.');
-            } elseif (isset($data['validate'])) {
-                return $this->validateImport($import, $payload);
+            if (!$this->hasCompleteLineSubmission($payload['lines'], $data['lines'] ?? null)) {
+                $this->Flash->error('Le formulaire est incomplet. Vos lignes n’ont pas été modifiées ; réessayez.');
             } else {
-                $this->Flash->success('Modifications enregistrées. Vérifiez puis validez.');
+                $payload = $this->applyEdits($payload, $data, $categories->extract('id')->toList());
+                $import->payload = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                $this->fetchTable('Imports')->saveOrFail($import);
+                if (isset($data['validate']) && $payload['salary']['net_paid'] === null && $payload['salary_present']) {
+                    $this->Flash->error('Le net payé est obligatoire pour enregistrer le bulletin.');
+                } elseif (isset($data['validate'])) {
+                    return $this->validateImport($import, $payload);
+                } else {
+                    $this->Flash->success('Modifications enregistrées. Vérifiez puis validez.');
+                }
             }
         }
         $lines = (new StatementImporter())->prepare($userId, $payload['lines']);
@@ -134,6 +139,11 @@ class ImportsController extends AppController
         } elseif ($text !== '') {
             $parsed = (new StatementParser())->parse($text);
         }
+        if (count($parsed['lines']) > self::MAX_REVIEW_LINES) {
+            $this->Flash->error(sprintf('Le relevé dépasse la limite de %d lignes par import.', self::MAX_REVIEW_LINES));
+
+            return null;
+        }
         $salary = array_fill_keys([...self::SALARY_CENTS, ...self::SALARY_DECIMALS], null) + ['notes' => null];
         $messages = $parsed['errors'];
         if ($payslipFile !== null) {
@@ -166,6 +176,31 @@ class ImportsController extends AppController
             'lines' => $parsed['lines'],
             'salary' => $salary,
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $expected
+     */
+    private function hasCompleteLineSubmission(array $expected, mixed $submitted): bool
+    {
+        if ($expected === []) {
+            return true;
+        }
+        if (!is_array($submitted) || count($submitted) !== count($expected)) {
+            return false;
+        }
+        foreach (array_keys($expected) as $index) {
+            if (!isset($submitted[$index]) || !is_array($submitted[$index])) {
+                return false;
+            }
+            foreach (['booked_on', 'label', 'debit', 'credit', 'category_id'] as $field) {
+                if (!array_key_exists($field, $submitted[$index])) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private function usable(mixed $file): ?UploadedFileInterface

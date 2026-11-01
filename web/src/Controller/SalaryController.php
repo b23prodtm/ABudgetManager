@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use DateTimeImmutable;
 use App\Service\DashboardBuilder;
 use App\Service\Money;
 use App\Service\SalaryTrend;
@@ -22,8 +23,13 @@ class SalaryController extends AppController
         $all = $this->fetchTable('SalaryEntries')->find()->where(['user_id' => $userId])->orderBy(['month' => 'ASC'])->all()->toList();
         $years = array_values(array_unique(array_map(fn($e) => $e->month->format('Y'), $all)));
         if ($range === '12') {
-            $all12 = array_slice($all, -12);
-            $entries = $all12;
+            $currentMonth = new DateTimeImmutable('first day of this month');
+            $cutoff = $currentMonth->modify('-11 months')->format('Y-m-d');
+            $currentMonth = $currentMonth->format('Y-m-d');
+            $entries = array_values(array_filter(
+                $all,
+                fn($e) => $e->month->format('Y-m-d') >= $cutoff && $e->month->format('Y-m-d') <= $currentMonth,
+            ));
         } elseif (preg_match('/^\d{4}$/', $range)) {
             $entries = array_values(array_filter($all, fn($e) => $e->month->format('Y') === $range));
         } else {

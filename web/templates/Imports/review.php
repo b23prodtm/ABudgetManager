@@ -57,12 +57,12 @@ foreach ($categories as $c) {
     <tbody>
     <?php foreach ($lines as $i => $l) : ?>
         <tr>
-            <td><?= $this->Form->text("lines.$i.booked_on", ['value' => $l['booked_on'], 'size' => 10]) ?></td>
-            <td><?= $this->Form->text("lines.$i.label", ['value' => $l['label']]) ?></td>
-            <td><?= $this->Form->text("lines.$i.debit", ['value' => $l['debit_cents'] ? Money::toInput($l['debit_cents']) : '', 'class' => 'num', 'size' => 9]) ?></td>
-            <td><?= $this->Form->text("lines.$i.credit", ['value' => $l['credit_cents'] ? Money::toInput($l['credit_cents']) : '', 'class' => 'num', 'size' => 9]) ?></td>
-            <td><?= $this->Form->select("lines.$i.category_id", $options, ['empty' => 'À classer', 'value' => $l['category_id']]) ?></td>
-            <td><?= $this->Form->checkbox("lines.$i.remove", ['hiddenField' => false]) ?></td>
+            <td><?= $this->Form->text("lines.$i.booked_on", ['value' => $l['booked_on'], 'size' => 10, 'aria-label' => sprintf('Ligne %d — Date', $i + 1)]) ?></td>
+            <td><?= $this->Form->text("lines.$i.label", ['value' => $l['label'], 'aria-label' => sprintf('Ligne %d — Libellé', $i + 1)]) ?></td>
+            <td><?= $this->Form->text("lines.$i.debit", ['value' => $l['debit_cents'] ? Money::toInput($l['debit_cents']) : '', 'class' => 'num', 'size' => 9, 'aria-label' => sprintf('Ligne %d — Débit', $i + 1)]) ?></td>
+            <td><?= $this->Form->text("lines.$i.credit", ['value' => $l['credit_cents'] ? Money::toInput($l['credit_cents']) : '', 'class' => 'num', 'size' => 9, 'aria-label' => sprintf('Ligne %d — Crédit', $i + 1)]) ?></td>
+            <td><?= $this->Form->select("lines.$i.category_id", $options, ['empty' => 'À classer', 'value' => $l['category_id'], 'aria-label' => sprintf('Ligne %d — Catégorie', $i + 1)]) ?></td>
+            <td><?= $this->Form->checkbox("lines.$i.remove", ['hiddenField' => false, 'aria-label' => sprintf('Ligne %d — Retirer', $i + 1)]) ?></td>
         </tr>
     <?php endforeach; ?>
     <?php if (!$lines) : ?><tr><td colspan="6"><em>Aucune ligne de relevé.</em></td></tr><?php endif; ?>
