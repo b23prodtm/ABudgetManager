@@ -1,5 +1,8 @@
 # Mon Budget
 
+[![CI](https://github.com/b23prodtm/ABudgetManager/actions/workflows/ci.yml/badge.svg)](https://github.com/b23prodtm/ABudgetManager/actions/workflows/ci.yml)
+[![balena deploy button](https://www.balena.io/deploy.svg)](https://dashboard.balena-cloud.com/deploy?repoUrl=https://github.com/b23prodtm/ABudgetManager)
+
 Personal budget manager and salary-trend tracker (CakePHP 5 + Python extraction API), designed for Balena Cloud / Raspberry Pi.
 UI in French, code and docs in English, amounts in EUR (stored as integer cents).
 
@@ -22,6 +25,10 @@ UI in French, code and docs in English, amounts in EUR (stored as integer cents)
 | `api/` | Flask API: `POST /extract/statement`, `POST /extract/payslip` (multipart `file`, PDF), `GET /health` |
 | `db/` | Owner of the SQLite volume: nightly `VACUUM INTO` backups, 14 kept (`/data/backups`) |
 | `docker-compose.yml` | `init-web` (migrations, salt), `db`, `web`, `api` |
+
+## Deployment (Balena Cloud)
+
+Click the **balena deploy** button above, pick a fleet (e.g. `raspberry-pi2`), then set `APP_FULL_BASE_URL` and `API_TOKEN` as fleet variables. `docker-compose.yml` uses Compose `version: '2.1'` with balena-supported options only (no `container_name`, no `depends_on` conditions).
 
 ## Run
 
