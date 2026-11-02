@@ -20,24 +20,25 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
       - run: vendor/bin/phpunit
 
-  api:
+  api-arm:
+    name: api image (${{ matrix.platform }})
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64, linux/arm/v7]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-          cache-dependency-path: api/requirements-dev.txt
-      - run: pip install -r requirements-dev.txt
-      - run: python -m pytest -q
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build api image
+        run: docker buildx build --platform ${{ matrix.platform }} --load -t api-test api
+      - name: Check native deps import
+        run: docker run --rm --platform ${{ matrix.platform }} --entrypoint python api-test -c "import PIL, cffi, app"
 
   compose:
     name: Compose build and smoke test
-    needs: [web, api]
+    needs: [web, api-arm]
     runs-on: ubuntu-latest
     env:
       API_TOKEN: ci-token
