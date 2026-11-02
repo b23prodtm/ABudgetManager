@@ -35,9 +35,25 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
 
+  api-arm:
+    name: api image (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64, linux/arm/v7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build api image
+        run: docker buildx build --platform ${{ matrix.platform }} --load -t api-test api
+      - name: Check native deps import
+        run: docker run --rm --platform ${{ matrix.platform }} --entrypoint python api-test -c "import PIL, cffi, app"
+
   compose:
     name: Compose build and smoke test
-    needs: [web, api]
+    needs: [web, api, api-arm]
     runs-on: ubuntu-latest
     env:
       API_TOKEN: ci-token
