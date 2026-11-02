@@ -53,7 +53,7 @@ jobs:
 
   compose:
     name: Compose build and smoke test
-    needs: [web, api, api-arm]
+    needs: [api-arm]
     runs-on: ubuntu-latest
     env:
       API_TOKEN: ci-token
